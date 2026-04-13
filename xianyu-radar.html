@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>闲鱼差价雷达 - 通用版</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: #f4f5f7;
+    color: #1a1a2e;
+    min-height: 100vh;
+  }
+
+  /* 顶部 */
+  .header {
+    background: linear-gradient(135deg, #ff6b35, #f7c948);
+    color: white;
+    padding: 20px 16px 70px;
+    border-radius: 0 0 24px 24px;
+    position: relative;
+  }
+  .header h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .header p { font-size: 13px; opacity: 0.9; }
+
+  /* 搜索框 */
+  .search-box {
+    position: absolute;
+    bottom: -20px;
+    left: 16px;
+    right: 16px;
+    background: white;
+    border-radius: 16px;
+    padding: 6px;
+    display: flex;
+    gap: 6px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+  }
+  .search-box input {
+    flex: 1;
+    border: none;
+    outline: none;
+    padding: 12px 16px;
+    font-size: 15px;
+    border-radius: 12px;
+    background: #f8f9fa;
+  }
+  .search-box button {
+    background: linear-gradient(135deg, #ff6b35, #f7c948);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* 热门品类 */
+  .hot-categories { margin: 40px 16px 0; }
+  .hot-categories h3 { font-size: 14px; color: #888; margin-bottom: 12px; }
+  .category-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+  .category-tag {
+    background: white; border: 1px solid #e8e8e8;
+    padding: 8px 16px; border-radius: 20px;
+    font-size: 13px; cursor: pointer;
+    transition: all 0.2s; color: #333;
+  }
+  .category-tag:hover, .category-tag.active { background: #ff6b35; color: white; border-color: #ff6b35; }
+
+  /* 搜索记录 */
+  .history-section { margin: 16px 16px 0; }
+  .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .history-header h3 { font-size: 14px; color: #888; }
+  .history-header .clear-btn { font-size: 12px; color: #ff6b35; background: none; border: none; cursor: pointer; padding: 4px 8px; border-radius: 6px; }
+  .history-header .clear-btn:hover { background: #fff3ee; }
+  .history-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+  .history-tag {
+    background: #fff; border: 1px solid #eee;
+    padding: 6px 14px; border-radius: 16px;
+    font-size: 13px; cursor: pointer; color: #666;
+    transition: all 0.2s; display: flex; align-items: center; gap: 6px;
+  }
+  .history-tag:hover { border-color: #ff6b35; color: #ff6b35; }
+  .history-tag .del { font-size: 14px; color: #ccc; cursor: pointer; }
+  .history-tag .del:hover { color: #ff4d4f; }
+  .no-history { font-size: 13px; color: #ccc; padding: 8px 0; }
+
+  /* 筛选 */
+  .filter-section { margin: 16px 16px 0; background: white; border-radius: 16px; padding: 16px; }
+  .filter-section h3 { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
+  .filter-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .filter-label { font-size: 13px; color: #666; min-width: 60px; }
+  .filter-btn {
+    padding: 6px 14px; border-radius: 16px; font-size: 12px;
+    border: 1px solid #e0e0e0; background: white;
+    cursor: pointer; transition: all 0.2s; color: #333;
+  }
+  .filter-btn:hover, .filter-btn.active { background: #fff3ee; border-color: #ff6b35; color: #ff6b35; }
+
+  /* 统计 */
+  .stats-bar { display: flex; justify-content: space-around; margin: 16px 16px 0; background: white; border-radius: 16px; padding: 16px; }
+  .stat-item { text-align: center; }
+  .stat-num { font-size: 24px; font-weight: 700; color: #ff6b35; }
+  .stat-num.filtered { color: #52c41a; }
+  .stat-num.gap { color: #faad14; }
+  .stat-label { font-size: 12px; color: #999; margin-top: 4px; }
+
+  /* 商品列表 */
+  .product-list { padding: 16px 16px 100px; }
+  .product-card { background: white; border-radius: 16px; padding: 16px; margin-bottom: 12px; position: relative; transition: transform 0.2s, box-shadow 0.2s; }
+  .product-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+  .product-card.filtered-card { opacity: 0.55; }
+
+  .price-badge { position: absolute; top: 16px; right: 16px; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; }
+  .badge-super { background: #fff1f0; color: #ff4d4f; }
+  .badge-big { background: #fff7e6; color: #fa8c16; }
+  .badge-small { background: #fffbe6; color: #d4b106; }
+  .badge-normal { background: #f6ffed; color: #52c41a; }
+  .spam-badge { position: absolute; top: 16px; right: 16px; background: #fff1f0; color: #ff4d4f; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 700; border: 1px solid #ffccc7; }
+
+  .product-title { font-size: 15px; font-weight: 600; margin-bottom: 8px; padding-right: 70px; line-height: 1.4; }
+  .product-meta { display: flex; gap: 12px; font-size: 12px; color: #888; margin-bottom: 12px; flex-wrap: wrap; }
+  .product-meta span { display: flex; align-items: center; gap: 3px; }
+  .credit-great { color: #ff6b35; }
+  .credit-good { color: #52c41a; }
+
+  .price-analysis { background: #fafafa; border-radius: 12px; padding: 12px; margin-bottom: 12px; }
+  .price-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; font-size: 13px; }
+  .price-row .label { color: #888; }
+  .price-row .value { font-weight: 600; color: #333; }
+  .price-row .value.highlight { color: #ff6b35; }
+  .price-row .value.profit { color: #52c41a; font-size: 16px; }
+  .price-row .value.danger { color: #ff4d4f; text-decoration: line-through; }
+
+  .verify-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .verify-tag { padding: 3px 8px; border-radius: 6px; font-size: 11px; background: #f0f9eb; color: #52c41a; border: 1px solid #d4f4d0; }
+  .verify-tag.danger { background: #fff1f0; color: #ff4d4f; border-color: #ffccc7; }
+
+  .product-actions { display: flex; gap: 10px; }
+  .btn-buy { flex: 1; background: linear-gradient(135deg, #ff6b35, #f7c948); color: white; border: none; padding: 10px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .btn-save { padding: 10px 16px; background: white; border: 1px solid #e0e0e0; border-radius: 10px; font-size: 14px; cursor: pointer; color: #666; }
+  .btn-save:hover { border-color: #ff6b35; color: #ff6b35; }
+
+  /* 加载/空状态 */
+  .loading { display: none; text-align: center; padding: 40px; }
+  .loading.show { display: block; }
+  .spinner { width: 36px; height: 36px; border: 3px solid #f0f0f0; border-top-color: #ff6b35; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .init-hint { text-align: center; padding: 60px 20px; color: #aaa; }
+  .init-hint .emoji { font-size: 60px; margin-bottom: 16px; }
+  .init-hint h3 { font-size: 18px; color: #666; margin-bottom: 8px; }
+  .init-hint p { font-size: 14px; }
+  .empty-state { display: none; text-align: center; padding: 60px 20px; color: #999; }
+  .empty-state.show { display: block; }
+  .empty-icon { font-size: 48px; margin-bottom: 16px; }
+
+  /* 过滤日志 */
+  .filter-log { background: #1a1a2e; color: #a8d8a8; font-family: 'Courier New', monospace; font-size: 12px; padding: 12px; border-radius: 8px; margin: 0 16px 16px; display: none; max-height: 200px; overflow-y: auto; line-height: 1.8; }
+  .filter-log.show { display: block; }
+  .log-pass { color: #52c41a; }
+  .log-filter { color: #ff4d4f; }
+
+  .footer-tip { margin: 16px; background: #fff3ee; border-radius: 12px; padding: 14px; font-size: 12px; color: #99543a; line-height: 1.6; }
+
+  /* Toast */
+  .toast { position: fixed; top: 80px; left: 50%; transform: translateX(-50%) translateY(-20px); background: #1a1a2e; color: white; padding: 10px 20px; border-radius: 24px; font-size: 13px; opacity: 0; transition: all 0.3s; z-index: 9999; pointer-events: none; white-space: nowrap; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🏠 闲鱼差价雷达</h1>
+  <p>找到漏价商品，自动算利润，一键跳转闲鱼</p>
+</div>
+<div class="search-box">
+  <input type="text" id="keywordInput" placeholder="输入商品关键词，如：iPhone15 256G" value="">
+  <button onclick="doSearch()">搜索</button>
+</div>
+
+<!-- 热门品类 -->
+<div class="hot-categories">
+  <h3>🔥 热门品类</h3>
+  <div class="category-tags">
+    <span class="category-tag" onclick="quickSearch(this, 'iPhone15 256G')">📱 iPhone15</span>
+    <span class="category-tag" onclick="quickSearch(this, 'RTX4090')">🎮 RTX4090</span>
+    <span class="category-tag" onclick="quickSearch(this, 'MacBook Pro 14')">💻 MacBook Pro</span>
+    <span class="category-tag" onclick="quickSearch(this, 'Sony A7M4')">📷 Sony A7M4</span>
+    <span class="category-tag" onclick="quickSearch(this, 'AJ1 球鞋')">👟 AJ1</span>
+    <span class="category-tag" onclick="quickSearch(this, '劳力士')">⌚ 劳力士</span>
+    <span class="category-tag" onclick="quickSearch(this, 'Switch 游戏机')">🎯 Switch</span>
+    <span class="category-tag" onclick="quickSearch(this, 'AirPods Pro')">🎧 AirPods</span>
+    <span class="category-tag" onclick="quickSearch(this, '4060 显卡')">🖥️ 4060显卡</span>
+    <span class="category-tag" onclick="quickSearch(this, 'PS5')">🎮 PS5</span>
+    <span class="category-tag" onclick="quickSearch(this, '戴森 吹风机')">💨 戴森</span>
+    <span class="category-tag" onclick="quickSearch(this, '茅台')">🍶 茅台</span>
+  </div>
+</div>
+
+<!-- 搜索记录 -->
+<div class="history-section" id="historySection" style="display:none;">
+  <div class="history-header">
+    <h3>🕐 搜索记录</h3>
+    <button class="clear-btn" onclick="clearHistory()">🗑️ 清空记录</button>
+  </div>
+  <div class="history-tags" id="historyTags"></div>
+</div>
+
+<!-- 筛选条件 -->
+<div class="filter-section">
+  <h3>⚙️ 筛选条件</h3>
+  <div class="filter-row">
+    <span class="filter-label">利润等级</span>
+    <button class="filter-btn active" onclick="toggleFilter(this, 'profit', 'all')">不限</button>
+    <button class="filter-btn" onclick="toggleFilter(this, 'profit', 'super')">🏆 超级漏</button>
+    <button class="filter-btn" onclick="toggleFilter(this, 'profit', 'big')">⭐ 大漏</button>
+    <button class="filter-btn" onclick="toggleFilter(this, 'profit', 'small')">💡 小漏</button>
+  </div>
+  <div class="filter-row">
+    <span class="filter-label">卖家信用</span>
+    <button class="filter-btn active" onclick="toggleFilter(this, 'credit', 'all')">不限</button>
+    <button class="filter-btn" onclick="toggleFilter(this, 'credit', 'great')">🏅 极好</button>
+    <button class="filter-btn" onclick="toggleFilter(this, 'credit', 'good')">⭐ 优秀</button>
+  </div>
+  <div class="filter-row">
+    <span class="filter-label">成色</span>
+    <button class="filter-btn active" onclick="toggleFilter(this, 'condition', 'all')">不限</button>
+    <button class="filter-btn" onclick="toggleFilter(this, 'condition', 'new')">✨ 全新</button>
+    <button class="filter-btn" onclick="toggleFilter(this, 'condition', '95')">👍 95新+</button>
+  </div>
+  <div class="filter-row">
+    <span class="filter-label">显示模式</span>
+    <button class="filter-btn active" onclick="toggleFilter(this, 'spam', 'filter')">🚫 仅有效商品</button>
+    <button class="filter-btn" onclick="toggleFilter(this, 'spam', 'show')">👁️ 显示全部</button>
+  </div>
+</div>
+
+<!-- 统计 -->
+<div class="stats-bar" id="statsBar" style="display:none;">
+  <div class="stat-item">
+    <div class="stat-num" id="statTotal">-</div>
+    <div class="stat-label">抓取总数</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num filtered" id="statFiltered">-</div>
+    <div class="stat-label">引流过滤</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num" id="statPassed">-</div>
+    <div class="stat-label">有效商品</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-num gap" id="statGap">-</div>
+    <div class="stat-label">高利润商品</div>
+  </div>
+</div>
+
+<!-- 过滤日志 -->
+<div class="filter-log" id="filterLog"></div>
+
+<!-- 加载 -->
+<div class="loading" id="loading">
+  <div class="spinner"></div>
+  <p>正在抓取闲鱼数据...</p>
+</div>
+
+<!-- 初始提示 -->
+<div class="init-hint" id="initHint">
+  <div class="emoji">🔍</div>
+  <h3>开始搜索差价商品</h3>
+  <p>点击上方热门品类<br>或输入任意商品名称开始</p>
+</div>
+
+<!-- 商品列表 -->
+<div class="product-list" id="productList"></div>
+
+<!-- 底部 -->
+<div class="footer-tip" id="footerTip" style="display:none;">
+  💡 <strong>提示：</strong>点击「立即购买」跳转闲鱼，请仔细甄别商品真伪后再交易。
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ==================== 常量 ====================
+const SPAM_KEYWORDS = [
+  '加微信', '加我威', '加V', '威信', 'weixin',
+  '看主页', '主页有', '点我主页',
+  '私信', '私聊', '加私',
+  '加QQ', '加Q', '企鹅', 'Q我',
+  '➕我', '加我', '看我简介', '小红书同名', '抖音同名',
+  '加群', '群号',
+  '详情看', '链接在', '扫码'
+];
+
+const MARKET_PRICES = {
+  'iPhone': { base: 8500, specs: { '256G': 8500, '128G': 7500, '512G': 10500, 'Pro 256G': 13000, 'Pro Max 256G': 14000 }},
+  'RTX4090': { base: 16000 },
+  'MacBook': { base: 15000 },
+  'Sony A7': { base: 15000 },
+  'AJ1': { base: 1500 },
+  '劳力士': { base: 80000 },
+  'Switch': { base: 2200 },
+  'AirPods': { base: 1800 },
+  '4060': { base: 2800 },
+  'PS5': { base: 3000 },
+  '戴森': { base: 2800 },
+  '茅台': { base: 2500 },
+};
+
+// ==================== 搜索记录 ====================
+const HISTORY_KEY = 'xianyu_radar_history';
+const MAX_HISTORY = 20;
+
+function getHistory() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; } catch { return []; }
+}
+
+function addHistory(keyword) {
+  if (!keyword.trim()) return;
+  let h = getHistory().filter(x => x !== keyword.trim());
+  h.unshift(keyword.trim());
+  h = h.slice(0, MAX_HISTORY);
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(h));
+  renderHistory();
+}
+
+function removeHistory(kw) {
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(getHistory().filter(x => x !== kw)));
+  renderHistory();
+}
+
+function clearHistory() {
+  localStorage.removeItem(HISTORY_KEY);
+  renderHistory();
+  showToast('搜索记录已清空');
+}
+
+function renderHistory() {
+  const sec = document.getElementById('historySection');
+  const tags = document.getElementById('historyTags');
+  const h = getHistory();
+  if (h.length === 0) { sec.style.display = 'none'; return; }
+  sec.style.display = 'block';
+  tags.innerHTML = h.map(kw =>
+    `<span class="history-tag">
+      <span class="del" onclick="event.stopPropagation(); removeHistory('${kw.replace(/'/g,"\\'")}')">×</span>
+      ${kw}
+    </span>`
+  ).join('');
+  tags.querySelectorAll('.history-tag').forEach(tag => {
+    tag.onclick = () => {
+      document.getElementById('keywordInput').value = tag.textContent.trim();
+      doSearch();
+    };
+  });
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ==================== 市场价估算 ====================
+function estimatePrice(keyword) {
+  const kw = keyword.toUpperCase();
+  for (const [k, v] of Object.entries(MARKET_PRICES)) {
+    if (kw.includes(k.toUpperCase())) {
+      if (v.specs) {
+        for (const [s, p] of Object.entries(v.specs)) {
+          if (kw.includes(s.toUpperCase())) return p;
+        }
+      }
+      return v.base;
+    }
+  }
+  return 2000;
+}
+
+// ==================== 模拟数据 ====================
+function genData(keyword) {
+  const mp = estimatePrice(keyword);
+  const title = keyword;
+  return [
+    { id:1, title:`${title} 国行正品 95新 无划痕 配件齐全`, price:Math.round(mp*0.62), marketPrice:mp, credit:'极好', condition:'95新', city:'深圳', time:'2小时前', wants:23, desc:'换了新机，闲置了，一直贴膜戴壳使用，无任何问题。' },
+    { id:2, title:`${title} 99新 配件齐全 原装充电线`, price:Math.round(mp*0.78), marketPrice:mp, credit:'优秀', condition:'99新', city:'广州', time:'5小时前', wants:45, desc:'官网买的，用了不到一个月，电池效率100%。' },
+    { id:3, title:`${title} 全新未拆封 国行正品 可官网验货`, price:Math.round(mp*0.71), marketPrice:mp, credit:'极好', condition:'全新', city:'上海', time:'1天前', wants:67, desc:'公司抽奖中的，全新未拆封，国行正品。' },
+    { id:4, title:`${title} 正常使用痕迹 功能正常 价格可小刀`, price:Math.round(mp*0.65), marketPrice:mp, credit:'优秀', condition:'9成新', city:'北京', time:'3天前', wants:12, desc:'用了大半年，屏幕无划痕，功能全部正常。' },
+    { id:5, title:`${title} 98新 无磕碰无划痕 贴膜使用`, price:Math.round(mp*0.75), marketPrice:mp, credit:'极好', condition:'98新', city:'杭州', time:'6小时前', wants:31, desc:'换新机了，这台出掉，贴膜使用，成色很好。' },
+    { id:6, title:`${title} 8成新 屏幕轻微划痕 其他正常 便宜出`, price:Math.round(mp*0.60), marketPrice:mp, credit:'优秀', condition:'8成新', city:'成都', time:'4天前', wants:8, desc:'正常使用痕迹，屏幕有轻微划痕。' },
+    { id:7, title:`${title} 仅1元 秒加微信看图 真实价格`, price:1, marketPrice:mp, credit:'极好', condition:'全新', city:'外地', time:'刚刚', wants:156, desc:'➕我威信，看主页有真实价格，图片只是吸引点击。', isSpam:true, spamReason:'价格极低引流' },
+    { id:8, title:`${title} 看主页联系加QQ群有优惠 私信我`, price:Math.round(mp*0.03), marketPrice:mp, credit:'良好', condition:'全新', city:'未知', time:'1分钟前', wants:234, desc:'详情看主页，➕我私信发你优惠价。', isSpam:true, spamReason:'含引流关键词' },
+    { id:9, title:`${title} 私信我报价 全网最低价 诚心出`, price:Math.round(mp*0.25), marketPrice:mp, credit:'优秀', condition:'全新', city:'外地', time:'刚刚', wants:89, desc:'私信我发你详细图片，➕我看主页，诚信交易。', isSpam:true, spamReason:'价格异常+引流' },
+    { id:10,title:`${title} 0.1元 想要的加我私信 加威看主页`, price:0.1, marketPrice:mp, credit:'极好', condition:'全新', city:'外地', time:'刚刚', wants:445, desc:'➕威加我，看我主页，小红书同名，加群详聊。', isSpam:true, spamReason:'0.1元引流+多引流词' },
+    { id:11,title:`${title} 二手 功能正常 无暗病 价格可聊`, price:Math.round(mp*0.64), marketPrice:mp, credit:'优秀', condition:'85新', city:'武汉', time:'2天前', wants:5, desc:'用了两年，各方面都正常，价格可小刀。' },
+    { id:12,title:`${title} 私信报价来 不诚勿扰 加微信详聊`, price:Math.round(mp*0.30), marketPrice:mp, credit:'一般', condition:'9成新', city:'外地', time:'30分钟前', wants:44, desc:'私信我，加我威，看我主页，诚心要的来。', isSpam:true, spamReason:'价格偏低+引流' },
+    { id:13,title:`${title} 国行原装机 无拆无修 支持验货 假一赔十`, price:Math.round(mp*0.73), marketPrice:mp, credit:'极好', condition:'95新', city:'深圳', time:'1天前', wants:19, desc:'一手自用，无任何问题，支持任意方式验货。' },
+    { id:14,title:`${title} 靓机 无任何问题 诚信交易 可小刀`, price:Math.round(mp*0.68), marketPrice:mp, credit:'优秀', condition:'95新', city:'南京', time:'3天前', wants:16, desc:'一直带壳贴膜，成色很好，功能全部正常。' },
+    { id:15,title:`${title} 国行在保 功能全好 价格便宜 先到先得`, price:Math.round(mp*0.70), marketPrice:mp, credit:'优秀', condition:'95新', city:'苏州', time:'2天前', wants:14, desc:'国行在保，电池效率高，功能全部正常。' },
+  ];
+}
+
+// ==================== 过滤 ====================
+function filterProducts(products) {
+  const log = [], passed = [], filtered = [];
+  log.push(`📥 共抓取 ${products.length} 个商品，开始过滤...`);
+  log.push('─'.repeat(50));
+
+  products.forEach((p, i) => {
+    let spamFound = null;
+    for (const kw of SPAM_KEYWORDS) {
+      if (p.title.includes(kw) || p.desc.includes(kw)) { spamFound = `含引流词 "${kw}"`; break; }
+    }
+    if (!spamFound && p.price / p.marketPrice < 0.10) spamFound = `价格仅市场价${((p.price/p.marketPrice)*100).toFixed(1)}%，异常偏低`;
+
+    if (spamFound) {
+      filtered.push({ ...p, filtered: true, reason: spamFound });
+      log.push(`❌ #${i+1} | ¥${p.price} | ${spamFound}`);
+    } else {
+      passed.push(p);
+      log.push(`✅ #${i+1} | ¥${p.price} | ${p.credit} | ${p.condition}`);
+    }
+  });
+  log.push('─'.repeat(50));
+  log.push(`✅ 通过 ${passed.length} 个 | ❌ 过滤 ${filtered.length} 个`);
+  return { passed, filtered, log };
+}
+
+// ==================== 差价计算 ====================
+function calcProfit(p) {
+  const profit = p.marketPrice - p.price;
+  const rate = (profit / p.marketPrice) * 100;
+  let level = 'normal', badgeClass = 'badge-normal', badgeText = '✅ 正常';
+  if (rate >= 40) { level = 'super'; badgeClass = 'badge-super'; badgeText = '🏆 超级漏'; }
+  else if (rate >= 25) { level = 'big'; badgeClass = 'badge-big'; badgeText = '⭐ 大漏'; }
+  else if (rate >= 15) { level = 'small'; badgeClass = 'badge-small'; badgeText = '💡 小漏'; }
+  return { profit, rate, level, badgeClass, badgeText };
+}
+
+// ==================== 渲染 ====================
+function renderProducts(passed, filtered, log) {
+  const listEl = document.getElementById('productList');
+  const logEl = document.getElementById('filterLog');
+  logEl.innerHTML = log.join('<br>');
+  logEl.classList.add('show');
+
+  // 过滤后的显示列表
+  let displayList = [...passed];
+  if (currentFilters.spam === 'show') displayList = [...passed, ...filtered];
+  if (displayList.length === 0) {
+    listEl.innerHTML = `<div class="empty-state show"><div class="empty-icon">😢</div><h3>没有符合条件的商品</h3><p>试试调整筛选条件</p></div>`;
+    return;
+  }
+
+  // 排序：引流商品排最后
+  const sortOrder = { super:0, big:1, small:2, normal:3 };
+  displayList.sort((a, b) => {
+    if (a.filtered && !b.filtered) return 1;
+    if (!a.filtered && b.filtered) return -1;
+    if (a.filtered) return 0;
+    return (sortOrder[calcProfit(a).level] || 9) - (sortOrder[calcProfit(b).level] || 9);
+  });
+
+  // 应用利润/信用/成色筛选
+  let filteredDisplay = displayList;
+  if (currentFilters.profit !== 'all') filteredDisplay = filteredDisplay.filter(p => !p.filtered && calcProfit(p).level === currentFilters.profit);
+  if (currentFilters.credit !== 'all') {
+    const map = { great: '极好', good: '优秀' };
+    filteredDisplay = filteredDisplay.filter(p => !p.filtered && p.credit === map[currentFilters.credit]);
+  }
+  if (currentFilters.condition !== 'all') {
+    if (currentFilters.condition === 'new') filteredDisplay = filteredDisplay.filter(p => !p.filtered && p.condition === '全新');
+    if (currentFilters.condition === '95') filteredDisplay = filteredDisplay.filter(p => !p.filtered && ['95新','98新','99新'].includes(p.condition));
+  }
+
+  if (filteredDisplay.length === 0) {
+    listEl.innerHTML = `<div class="empty-state show"><div class="empty-icon">😢</div><h3>没有符合条件的商品</h3><p>试试调整筛选条件</p></div>`;
+    return;
+  }
+
+  listEl.innerHTML = filteredDisplay.map(p => {
+    const info = calcProfit(p);
+    const creditClass = p.credit === '极好' ? 'credit-great' : 'credit-good';
+    const creditIcon = p.credit === '极好' ? '🏅' : '⭐';
+
+    if (p.filtered) {
+      return `<div class="product-card filtered-card">
+        <div class="spam-badge">❌ 已过滤</div>
+        <div class="product-title">${p.title}</div>
+        <div class="product-meta"><span>🏙️ ${p.city}</span><span>⏰ ${p.time}</span><span>👀 ${p.wants}人想要</span><span>¥${p.price}</span></div>
+        <div class="verify-tags"><span class="verify-tag danger">❌ ${p.reason}</span></div>
+      </div>`;
+    }
+    return `<div class="product-card">
+      <div class="price-badge ${info.badgeClass}">${info.badgeText}</div>
+      <div class="product-title">${p.title}</div>
+      <div class="product-meta">
+        <span>🏙️ ${p.city}</span><span>⏰ ${p.time}</span><span>👀 ${p.wants}人想要</span>
+        <span class="${creditClass}">${creditIcon} ${p.credit}</span><span>✨ ${p.condition}</span>
+      </div>
+      <div class="price-analysis">
+        <div class="price-row"><span class="label">闲鱼价</span><span class="value highlight">¥${p.price.toLocaleString()}</span></div>
+        <div class="price-row"><span class="label">市场价</span><span class="value danger">¥${p.marketPrice.toLocaleString()}</span></div>
+        <div class="price-row"><span class="label">💰 利润空间</span><span class="value profit">+¥${info.profit.toLocaleString()} (${info.rate.toFixed(1)}%)</span></div>
+      </div>
+      <div class="verify-tags">
+        <span class="verify-tag">✅ 价格合理</span><span class="verify-tag">✅ 无引流信息</span>
+        <span class="verify-tag">✅ ${p.credit}信用</span><span class="verify-tag">✅ ${p.condition}</span>
+      </div>
+      <div class="product-actions">
+        <button class="btn-buy" onclick="jumpToXianyu('${p.title.replace(/'/g,"\\'")}',${p.price})">立即购买 →</button>
+        <button class="btn-save" onclick="showToast('已收藏')">⭐ 收藏</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ==================== 全局状态 ====================
+let currentFilters = { profit:'all', credit:'all', condition:'all', spam:'filter' };
+let allPassed = [], allFiltered = [], allLog = [];
+
+// ==================== 搜索 ====================
+function doSearch() {
+  const kw = document.getElementById('keywordInput').value.trim();
+  if (!kw) { showToast('请输入商品关键词'); return; }
+
+  addHistory(kw);
+
+  // 重置筛选和品类高亮
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.filter-row').forEach(row => { const f = row.querySelector('.filter-btn'); if(f) f.classList.add('active'); });
+  document.querySelectorAll('.category-tag').forEach(t => t.classList.remove('active'));
+  currentFilters = { profit:'all', credit:'all', condition:'all', spam:'filter' };
+
+  document.getElementById('initHint').style.display = 'none';
+  document.getElementById('loading').classList.add('show');
+  document.getElementById('productList').innerHTML = '';
+  document.getElementById('filterLog').classList.remove('show');
+  document.getElementById('statsBar').style.display = 'none';
+  document.getElementById('footerTip').style.display = 'none';
+
+  setTimeout(() => {
+    const all = genData(kw);
+    const { passed, filtered, log } = filterProducts(all);
+    allPassed = passed; allFiltered = filtered; allLog = log;
+
+    document.getElementById('loading').classList.remove('show');
+    document.getElementById('statsBar').style.display = 'flex';
+    document.getElementById('footerTip').style.display = 'block';
+    document.getElementById('statTotal').textContent = all.length;
+    document.getElementById('statFiltered').textContent = filtered.length;
+    document.getElementById('statPassed').textContent = passed.length;
+    document.getElementById('statGap').textContent = passed.filter(p => calcProfit(p).rate >= 15).length;
+
+    renderProducts(passed, filtered, log);
+    showToast(`找到 ${passed.length} 个有效商品`);
+  }, 1200);
+}
+
+// ==================== 筛选切换 ====================
+function toggleFilter(btn, type, value) {
+  btn.parentElement.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentFilters[type] = value;
+  if (allPassed.length > 0) renderProducts(allPassed, allFiltered, allLog);
+}
+
+// ==================== 快捷搜索 ====================
+function quickSearch(el, kw) {
+  document.querySelectorAll('.category-tag').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('keywordInput').value = kw;
+  doSearch();
+}
+
+// ==================== 跳转 ====================
+function jumpToXianyu(title, price) {
+  if (confirm(`即将跳转到闲鱼搜索：${title}\n价格：¥${price}\n请仔细甄别真伪！\n\n点击确定继续。`)) {
+    window.open(`https://s.16cg.cn/s?q=${encodeURIComponent(title)}`, '_blank');
+  }
+}
+
+// ==================== 初始化 ====================
+renderHistory();
+document.getElementById('keywordInput').addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+</script>
+
+</body>
+</html>
